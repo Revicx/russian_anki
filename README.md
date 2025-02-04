@@ -72,12 +72,12 @@ pip install -r requirements.txt
 ```
 
 ### 4. Configuration
-Create a `.env` file in the project root:
+Create a `.env` file in the project root with your API key:
 ```env
-TESSERACT_PATH=C:\Program Files\Tesseract-OCR\tesseract.exe
-POPPLER_PATH=C:\Path\To\poppler-xx\bin
 OPENROUTER_API_KEY=your_api_key_here
 ```
+
+All other configuration settings (paths, defaults, etc.) can be found in `src/config.py`.
 
 ## Usage
 
