@@ -11,27 +11,27 @@ from dotenv import load_dotenv
 
 from src.config import TRANSLATION_LOG_FILE
 
-# Konfiguriere Translation Logger
+# Configure Translation Logger
 translation_logger = logging.getLogger('Translator')
 translation_logger.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 
-# File Handler für Übersetzungen
+# File Handler for translations
 fh = logging.FileHandler(TRANSLATION_LOG_FILE, encoding='utf-8')
 fh.setFormatter(formatter)
 translation_logger.addHandler(fh)
 
-# Lade Umgebungsvariablen
+# Load environment variables
 load_dotenv()
 
 class RussianTranslator:
     def __init__(self):
         self.api_key = os.getenv('OPENROUTER_API_KEY')
         if not self.api_key:
-            translation_logger.error("OpenRouter API Key nicht gefunden!")
-            raise ValueError("OpenRouter API Key nicht gefunden. Bitte .env Datei überprüfen.")
+            translation_logger.error("OpenRouter API Key not found!")
+            raise ValueError("OpenRouter API Key not found. Please check .env file.")
         
-        translation_logger.info("RussianTranslator initialisiert")
+        translation_logger.info("RussianTranslator initialized")
         self.headers = {
             "Authorization": f"Bearer {self.api_key}",
             "HTTP-Referer": "https://github.com/OpenRouterTeam/openrouter",
@@ -39,48 +39,39 @@ class RussianTranslator:
         }
         
     def is_russian_word(self, word):
-        """Überprüft, ob ein Wort russische Zeichen enthält."""
+        """Check if a word contains Russian characters."""
         russian_pattern = re.compile(r'[А-Яа-я]')
         is_russian = bool(russian_pattern.search(word))
-        translation_logger.debug(f"Wortprüfung: '{word}' ist{'' if is_russian else ' nicht'} russisch")
+        translation_logger.debug(f"Word check: '{word}' is{'' if is_russian else ' not'} Russian")
         return is_russian
     
     def clean_word(self, word):
-        """Entfernt Sonderzeichen und Whitespace."""
+        """Remove special characters and whitespace."""
         original = word
         cleaned = word.strip().lower()
         if original != cleaned:
-            translation_logger.debug(f"Wort bereinigt: '{original}' -> '{cleaned}'")
+            translation_logger.debug(f"Word cleaned: '{original}' -> '{cleaned}'")
         return cleaned
     
     def translate_word(self, word):
-        """Übersetzt ein einzelnes Wort."""
+        """Translate a single word."""
         if not word or not self.is_russian_word(word):
-            translation_logger.warning(f"Wort übersprungen (nicht russisch oder leer): {word}")
+            translation_logger.warning(f"Skipping translation for non-Russian or empty word: {word}")
             return None
             
         word = self.clean_word(word)
-        translation_logger.info(f"Übersetze Wort: {word}")
+        translation_logger.info(f"Translating word: {word}")
         
-        prompt = f"""Du bist ein Russisch-Deutsch Übersetzer. Übersetze das folgende russische Wort ins Deutsche.
-Gib die Antwort AUSSCHLIESSLICH im folgenden JSON-Format zurück, OHNE zusätzliche Erklärungen oder Hinweise:
-{{
-    "original": "das russische Wort",
-    "translation": "die deutsche Übersetzung",
-    "part_of_speech": "Wortart mit zusätzlichen Informationen",
-    "example_de": "Ein Beispielsatz auf Deutsch",
-    "example_ru": "Der gleiche Beispielsatz auf Russisch",
-    "grammar_info": "Grammatikalische Informationen in einem einzelnen String mit \\n für neue Zeilen:\\n- Bei Verben: Konjugation in Präsens, Präteritum\\n- Bei Substantiven: Genus, Plural\\n- Bei Adjektiven: Deklination\\n- Bei Adverbien: Steigerungsformen wenn möglich"
-}}
+        prompt = """You are a professional Russian to English translator. Translate the given Russian word to English. Respond with ONLY the English translation, nothing else.
+        
+Special instructions:
+1. Correct typos in the Russian word silently
+2. Do not provide any additional explanations outside of the translation
+3. The example sentence should show the word in a typical context
+4. Grammar information as a single string with \\n for new lines
+5. Stick strictly to the translation format without line breaks in strings
 
-Spezielle Anweisungen:
-1. Korrigiere Tippfehler im russischen Wort stillschweigend
-2. Gib KEINE zusätzlichen Erklärungen außerhalb des JSON
-3. Der Beispielsatz sollte das Wort in einem typischen Kontext zeigen
-4. Grammatik-Info als einzelner String mit \\n für neue Zeilen
-5. Halte dich STRIKT an das JSON-Format ohne Zeilenumbrüche in Strings
-
-Russisches Wort: {word}"""
+Russian word: {word}"""
         
         try:
             response = requests.post(
@@ -91,7 +82,7 @@ Russisches Wort: {word}"""
                     "messages": [
                         {
                             "role": "system",
-                            "content": prompt
+                            "content": prompt.format(word=word)
                         }
                     ]
                 }
@@ -100,46 +91,46 @@ Russisches Wort: {word}"""
             if response.status_code == 200:
                 content = response.json()["choices"][0]["message"]["content"]
                 
-                # Finde den JSON-Teil der Antwort
+                # Find the JSON part of the response
                 try:
-                    # Suche nach dem ersten { und letzten }
+                    # Search for the first { and last }
                     start = content.find('{')
                     end = content.rfind('}') + 1
                     if start >= 0 and end > start:
                         json_str = content[start:end]
                         translation_data = json.loads(json_str)
-                        translation_logger.info(f"Übersetzung erfolgreich: {translation_data}")
+                        translation_logger.info(f"Translation successful: {translation_data}")
                         return translation_data
                     else:
-                        translation_logger.error("Kein JSON in der Antwort gefunden")
+                        translation_logger.error("No JSON found in the response")
                         return None
                 except json.JSONDecodeError as e:
                     translation_logger.error(f"JSON Parse Error: {str(e)}\nContent: {content}")
                     return None
             else:
-                translation_logger.error(f"API Fehler: {response.status_code} - {response.text}")
+                translation_logger.error(f"API Error: {response.status_code} - {response.text}")
                 return None
                 
         except Exception as e:
-            translation_logger.error(f"Fehler bei der Übersetzung von '{word}': {str(e)}")
+            translation_logger.error(f"Error translating '{word}': {str(e)}")
             return None
             
     def batch_translate(self, words, batch_size=10, max_workers=5):
-        """Übersetzt eine Liste von Wörtern parallel."""
+        """Translate a list of words in parallel."""
         if not words:
             return []
             
-        # Dedupliziere die Wörter
+        # Deduplicate the words
         unique_words = list(set(words))
-        translation_logger.info(f"Starte parallele Batch-Übersetzung von {len(unique_words)} einzigartigen Wörtern mit {max_workers} Workern")
+        translation_logger.info(f"Starting parallel batch translation of {len(unique_words)} unique words with {max_workers} workers")
         translations = []
         
-        # Verarbeite Wörter in Batches parallel
+        # Process words in batches in parallel
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            # Erstelle eine Liste von Futures für die Übersetzungen
+            # Create a list of futures for the translations
             futures = {executor.submit(self.translate_word, word): word for word in unique_words}
             
-            # Sammle die Ergebnisse ein
+            # Collect the results
             for future in as_completed(futures):
                 word = futures[future]
                 try:
@@ -147,26 +138,26 @@ Russisches Wort: {word}"""
                     if translation:
                         translations.append(translation)
                 except Exception as e:
-                    translation_logger.error(f"Fehler bei der Übersetzung von '{word}': {str(e)}")
+                    translation_logger.error(f"Error translating '{word}': {str(e)}")
                     
-        translation_logger.info(f"Parallele Batch-Übersetzung abgeschlossen. {len(translations)}/{len(unique_words)} Übersetzungen erstellt.")
+        translation_logger.info(f"Parallel batch translation completed. {len(translations)}/{len(unique_words)} translations created.")
         return translations
 
-# Beispielnutzung:
+# Example usage:
 if __name__ == "__main__":
-    translation_logger.info("Starte Übersetzer-Test")
+    translation_logger.info("Starting translator test")
     translator = RussianTranslator()
     
     test_words = ["привет", "книга", "test", "здравствуйте"]
-    translation_logger.info(f"Teste mit Wörtern: {test_words}")
+    translation_logger.info(f"Testing with words: {test_words}")
     
-    print("Teste Übersetzungen:")
+    print("Testing translations:")
     for word in test_words:
         result = translator.translate_word(word)
         if result:
             print(f"\nOriginal: {word}")
-            print(f"Übersetzung: {result['translation']}")
+            print(f"Translation: {result['translation']}")
         else:
-            print(f"\nFehler bei '{word}'")
+            print(f"\nError translating '{word}'")
     
-    translation_logger.info("Übersetzer-Test abgeschlossen")
+    translation_logger.info("Translator test completed")

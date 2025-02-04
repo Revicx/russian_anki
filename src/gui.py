@@ -15,56 +15,57 @@ from src.storage import store_new_words, init_db_sqlite
 class VocabExtractorGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("Russisch Vokabel Extraktor")
+        self.root.title("Russian Vocabulary Extractor")
         self.setup_gui()
         
     def setup_gui(self):
-        # Hauptframe
+        # Main frame
         main_frame = ttk.Frame(self.root, padding="10")
         main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         
-        # Dateiauswahl
-        ttk.Label(main_frame, text="Dateien/Ordner:").grid(row=0, column=0, sticky=tk.W, pady=5)
+        # File selection
+        ttk.Label(main_frame, text="Selected Files/Folders:").grid(row=0, column=0, sticky=tk.W, pady=5)
         
-        # Listbox für ausgewählte Dateien
+        # Listbox for files
         self.file_listbox = tk.Listbox(main_frame, width=60, height=10)
         self.file_listbox.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=5)
         
-        # Scrollbar für Listbox
+        # Scrollbar for listbox
         scrollbar = ttk.Scrollbar(main_frame, orient=tk.VERTICAL, command=self.file_listbox.yview)
         scrollbar.grid(row=1, column=2, sticky=(tk.N, tk.S))
         self.file_listbox.configure(yscrollcommand=scrollbar.set)
         
-        # Buttons für Dateiauswahl
+        # Buttons frame
         button_frame = ttk.Frame(main_frame)
         button_frame.grid(row=2, column=0, columnspan=2, sticky=tk.W, pady=5)
         
-        ttk.Button(button_frame, text="Dateien hinzufügen", command=self.add_files).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Ordner hinzufügen", command=self.add_directory).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Auswahl entfernen", command=self.remove_selected).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Liste leeren", command=self.clear_list).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Add Files", command=self.add_files).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Add Folder", command=self.add_directory).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Remove Selected", command=self.remove_selected).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Clear List", command=self.clear_list).pack(side=tk.LEFT, padx=5)
         
-        # Speichermethode
-        storage_frame = ttk.LabelFrame(main_frame, text="Speichermethode", padding="5")
+        # Storage options
+        storage_frame = ttk.LabelFrame(main_frame, text="Storage Options", padding="5")
         storage_frame.grid(row=3, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=10)
         
+        # Storage type
         self.storage_var = tk.StringVar(value="sqlite")
         ttk.Radiobutton(storage_frame, text="SQLite", variable=self.storage_var, 
                        value="sqlite").grid(row=0, column=0, padx=5)
         ttk.Radiobutton(storage_frame, text="CSV", variable=self.storage_var,
                        value="csv").grid(row=0, column=1, padx=5)
         
-        # Datenbankpfad
+        # Database path
         self.db_path_var = tk.StringVar(value=DEFAULT_DB_PATH)
-        ttk.Label(main_frame, text="Datenbank/CSV-Pfad:").grid(row=4, column=0, sticky=tk.W)
+        ttk.Label(main_frame, text="Database/CSV Path:").grid(row=4, column=0, sticky=tk.W)
         ttk.Entry(main_frame, textvariable=self.db_path_var, width=40).grid(row=4, column=1, sticky=tk.W)
         
-        # Ausgabedatei für Anki
+        # Output file
         self.output_var = tk.StringVar(value=DEFAULT_OUTPUT_FILE)
-        ttk.Label(main_frame, text="Anki Ausgabedatei:").grid(row=5, column=0, sticky=tk.W)
+        ttk.Label(main_frame, text="Anki Output File:").grid(row=5, column=0, sticky=tk.W)
         ttk.Entry(main_frame, textvariable=self.output_var, width=40).grid(row=5, column=1, sticky=tk.W)
         
-        # Start Button
+        # Process button
         ttk.Button(main_frame, text="Start", command=self.start_processing).grid(row=6, column=0, columnspan=2, pady=10)
         
         # Progress Bar
@@ -74,7 +75,7 @@ class VocabExtractorGUI:
         self.progress.grid(row=7, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=5)
         
         # Status Label
-        self.status_var = tk.StringVar(value="Bereit")
+        self.status_var = tk.StringVar(value="Ready")
         ttk.Label(main_frame, textvariable=self.status_var).grid(row=8, column=0, columnspan=2)
         
         # Initialize storage
@@ -82,14 +83,14 @@ class VocabExtractorGUI:
         
     def add_files(self):
         files = filedialog.askopenfilenames(
-            title="Dateien auswählen",
+            title="Select Files",
             filetypes=[
-                ("Unterstützte Dateien", "*.txt;*.pdf;*.docx;*.png;*.jpg;*.jpeg"),
-                ("Text Dateien", "*.txt"),
-                ("PDF Dateien", "*.pdf"),
-                ("Word Dateien", "*.docx"),
-                ("Bilder", "*.png;*.jpg;*.jpeg"),
-                ("Alle Dateien", "*.*")
+                ("Supported Files", "*.txt;*.pdf;*.docx;*.png;*.jpg;*.jpeg"),
+                ("Text Files", "*.txt"),
+                ("PDF Files", "*.pdf"),
+                ("Word Documents", "*.docx"),
+                ("Image Files", "*.png;*.jpg;*.jpeg"),
+                ("All Files", "*.*")
             ]
         )
         for file in files:
@@ -97,7 +98,7 @@ class VocabExtractorGUI:
                 self.file_listbox.insert(tk.END, file)
                 
     def add_directory(self):
-        directory = filedialog.askdirectory(title="Ordner auswählen")
+        directory = filedialog.askdirectory(title="Select Folder")
         if directory and directory not in self.file_listbox.get(0, tk.END):
             self.file_listbox.insert(tk.END, directory)
             
@@ -112,20 +113,20 @@ class VocabExtractorGUI:
     def start_processing(self):
         selected_items = self.file_listbox.get(0, tk.END)
         if not selected_items:
-            messagebox.showwarning("Warnung", "Bitte wählen Sie mindestens eine Datei oder einen Ordner aus.")
+            messagebox.showwarning("Warning", "Please select at least one file or folder.")
             return
             
         try:
-            # Setze Progress Bar
+            # Set Progress Bar
             self.progress_var.set(0)
-            total_steps = len(selected_items) + 2  # Dateien + Übersetzung + Anki
+            total_steps = len(selected_items) + 2  # Files + Translation + Anki
             step = 100.0 / total_steps
             current_progress = 0
             
-            # Sammle Wörter aus allen ausgewählten Dateien
+            # Collect words from all selected files
             all_words = set()
             for path in selected_items:
-                self.status_var.set(f"Verarbeite: {os.path.basename(path)}")
+                self.status_var.set(f"Processing: {os.path.basename(path)}")
                 extracted_words = extract_text_from_input(path, self.storage_var.get(), self.db_path_var.get())
                 all_words.update(word.lower() for word in extracted_words)
                 current_progress += step
@@ -133,36 +134,36 @@ class VocabExtractorGUI:
                 self.root.update()
             
             if not all_words:
-                messagebox.showinfo("Information", "Keine neuen russischen Wörter gefunden.")
+                messagebox.showinfo("Information", "No new Russian words found.")
                 return
                 
-            # Übersetze Wörter
-            self.status_var.set("Übersetze Wörter...")
+            # Translate words
+            self.status_var.set("Translating words...")
             translator = RussianTranslator()
             translations = translator.batch_translate(sorted(list(all_words)))
             current_progress += step
             self.progress_var.set(current_progress)
             self.root.update()
             
-            # Speichere neue Wörter
+            # Store new words
             store_new_words(self.storage_var.get(), self.db_path_var.get(), all_words)
             
-            # Erstelle Anki Deck
-            self.status_var.set("Erstelle Anki Deck...")
+            # Create Anki deck
+            self.status_var.set("Creating Anki deck...")
             create_anki_deck(translations, self.output_var.get())
             current_progress += step
             self.progress_var.set(100)
             self.root.update()
             
-            self.status_var.set("Fertig!")
-            messagebox.showinfo("Erfolg", 
-                              f"{len(all_words)} neue Wörter verarbeitet.\n"
-                              f"Anki Deck wurde erstellt: {self.output_var.get()}")
+            self.status_var.set("Done!")
+            messagebox.showinfo("Success", 
+                              f"{len(all_words)} new words processed.\n"
+                              f"Anki deck created: {self.output_var.get()}")
             
         except Exception as e:
-            logging.error(f"Fehler bei der Verarbeitung: {str(e)}", exc_info=True)
-            messagebox.showerror("Fehler", f"Ein Fehler ist aufgetreten:\n{str(e)}")
-            self.status_var.set("Fehler aufgetreten")
+            logging.error(f"Error in processing: {str(e)}", exc_info=True)
+            messagebox.showerror("Error", f"An error occurred:\n{str(e)}")
+            self.status_var.set("Error occurred")
         finally:
             self.progress_var.set(0)
 
