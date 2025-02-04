@@ -1,117 +1,110 @@
 # Russian to Anki
 
-A Python tool that extracts Russian text from various file formats and automatically creates Anki flashcards for vocabulary learning. Features an easy-to-use graphical interface for file selection and configuration.
+Ein Python-Tool zur automatischen Erstellung von Anki-Karteikarten aus russischen Texten. Das Tool unterstützt verschiedene Dateiformate und bietet eine benutzerfreundliche grafische Oberfläche.
 
-## Features
+## Hauptfunktionen
 
-- **User-Friendly GUI Interface:**
-  - Simple file and directory selection
-  - Multiple file selection support
-  - Easy configuration of all options
-  - Progress and status updates
+- **Unterstützte Eingabeformate:**
+  - PDF-Dokumente (Text und gescannte PDFs via OCR)
+  - Word-Dokumente (`.docx`)
+  - Bilder (`.png`, `.jpg`, `.jpeg`, `.bmp`)
+  - Text-Dateien (`.txt`)
 
-- **Multiple Input Formats Support:**
-  - Text files (`.txt`)
-  - Word documents (`.docx`)
-  - PDF documents with dual extraction methods:
-    - Text extraction (using pdfminer.six)
-    - OCR for scanned PDFs (using pdf2image and Tesseract)
-  - Images (`.png`, `.jpg`, `.jpeg`, `.bmp`) with enhanced OCR:
-    - Automatic image preprocessing
-    - Contrast enhancement
-    - Sharpness adjustment
-  - Batch processing of multiple files and directories
+- **Automatische Texterkennung:**
+  - Intelligente OCR für gescannte PDFs und Bilder
+  - Automatische Bildvorverarbeitung für bessere Ergebnisse
+  - Unterstützung für kyrillische Schrift
 
-- **Flexible Storage Options:**
-  - SQLite database (default)
-  - CSV file storage
-  - Automatic duplicate detection
+- **Anki-Integration:**
+  - Automatische Deck-Erstellung
+  - Erkennung und Entfernung von Duplikaten
+  - Export im `.apkg`-Format
+  - Anpassbare Kartenvorlagen
 
-- **Anki Integration:**
-  - Automatic deck creation
-  - Custom card template with fields for:
-    - Word
-    - Translation
-    - Context
-  - Exports to `.apkg` format for direct import into Anki
+## Installation
 
-## Setup
+### 1. Systemvoraussetzungen
 
-1. Make sure you have Python 3.x installed on your system
+- Python 3.x
+- Tesseract OCR (für Bildverarbeitung)
+- Poppler (für PDF-Verarbeitung)
 
-2. Install system dependencies:
-   - **Tesseract OCR** (required for image and scanned PDF processing):
-     - Download from: https://github.com/UB-Mannheim/tesseract/wiki
-     - Add Tesseract to your system PATH
-   
-   - **Poppler** (required for PDF processing):
-     - Download from: https://github.com/oschwartz10612/poppler-windows/releases/
-     - Add the `bin` directory to your system PATH
+### 2. Tesseract OCR Installation
 
-3. Create a virtual environment by running:
+1. Herunterladen von: https://github.com/UB-Mannheim/tesseract/wiki
+2. Installation ausführen
+3. Sicherstellen, dass Tesseract zum System-PATH hinzugefügt ist
+
+### 3. Poppler Installation
+
+1. Herunterladen von: https://github.com/oschwartz10612/poppler-windows/releases/
+2. Archiv entpacken
+3. Den `bin`-Ordner zum System-PATH hinzufügen
+
+### 4. Python-Umgebung einrichten
+
+1. Repository klonen:
+   ```bash
+   git clone https://github.com/Auron040/russian_anki.git
+   cd russian_anki
    ```
+
+2. Virtuelle Umgebung erstellen und aktivieren:
+   ```bash
    python -m venv venv
+   .\venv\Scripts\activate  # Windows
    ```
 
-4. Run the `activate_venv.bat` script to activate the virtual environment
-
-5. Install the required packages:
-   ```
+3. Abhängigkeiten installieren:
+   ```bash
    pip install -r requirements.txt
    ```
 
-## Usage
+## Verwendung
 
-1. Run the application:
+1. Programm starten:
    ```bash
-   python main.py
+   python run.py
    ```
 
-2. Using the GUI:
-   - Click "Select Files" to choose individual files
-   - Click "Select Directory" to process an entire folder
-   - Choose your storage method (SQLite or CSV)
-   - Optionally customize:
-     - Storage path
-     - Deck name
-     - Output file name
-   - Click "Process Files" to start the extraction
+2. In der GUI:
+   - Dateien oder Ordner auswählen
+   - Gewünschte Einstellungen vornehmen
+   - "Verarbeiten" klicken
 
-The application will automatically:
-- Check for required dependencies
-- Extract text from all selected files
-- Identify new words
-- Create an Anki deck
-- Show a success message with statistics
+3. Das generierte Anki-Deck (`russisch_deck.apkg`) in Anki importieren
 
-## Output Files
+## Projektstruktur
 
-- `app.log`: Contains detailed logging information about the program's execution
-- `wortschatz.db` or `wortschatz.csv`: Storage file for vocabulary (depending on storage method)
-- `russisch_deck.apkg`: Generated Anki deck file (can be imported directly into Anki)
+- `src/`: Hauptquellcode
+  - `gui.py`: Grafische Benutzeroberfläche
+  - `text_extraction.py`: Text- und OCR-Verarbeitung
+  - `anki_generator.py`: Anki-Deck-Erstellung
+  - `translator.py`: Übersetzungsfunktionen
+  - `storage.py`: Datenbank-Management
 
-## Notes
+- `requirements.txt`: Python-Abhängigkeiten
+- `setup_dependencies.bat`: Hilfsskript für die Installation
+- `.env`: Konfigurationsdatei (muss erstellt werden)
 
-- The program automatically detects and skips duplicate words
-- OCR functionality requires Tesseract to be installed on your system
-- PDF processing works in two modes:
-  - Text extraction for normal PDFs
-  - OCR for scanned PDFs (requires both Tesseract and Poppler)
-- Word document processing requires no additional system dependencies
-- All text processing is case-insensitive
-- Words are stored with empty translation and context fields, which can be filled in Anki later
+## Konfiguration
 
-## Dependencies
+Erstellen Sie eine `.env`-Datei mit folgenden Einstellungen:
+```
+TESSERACT_PATH=C:\Program Files\Tesseract-OCR\tesseract.exe
+POPPLER_PATH=C:\Path\To\poppler-xx\bin
+```
 
-Python packages (installed automatically via requirements.txt):
-- genanki: For creating Anki decks
-- pdfminer.six: For PDF text extraction
-- pytesseract: For OCR functionality
-- Pillow: For image processing
-- python-docx: For Word document processing
-- pdf2image: For converting PDFs to images for OCR
-- tkinter: For the graphical interface (usually comes with Python)
+## Fehlerbehebung
 
-System dependencies (must be installed manually):
-- Tesseract OCR: For processing images and scanned PDFs
-- Poppler: For PDF to image conversion
+- **OCR funktioniert nicht**: Überprüfen Sie die Tesseract-Installation und den PATH
+- **PDF-Verarbeitung schlägt fehl**: Stellen Sie sicher, dass Poppler korrekt installiert ist
+- **Encoding-Fehler**: Überprüfen Sie die Textcodierung der Eingabedateien (UTF-8 empfohlen)
+
+## Lizenz
+
+Dieses Projekt steht unter der MIT-Lizenz. Siehe [LICENSE](LICENSE) für Details.
+
+## Mitwirken
+
+Beiträge sind willkommen! Bitte erstellen Sie einen Pull Request oder ein Issue für Verbesserungsvorschläge.
