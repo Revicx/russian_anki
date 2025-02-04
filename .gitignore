@@ -34,3 +34,6 @@ poppler-windows/
 # Windows
 Thumbs.db
 desktop.ini
+
+# Russian Data directory
+Russian Data/
