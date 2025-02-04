@@ -37,3 +37,7 @@ desktop.ini
 
 # Russian Data directory
 Russian Data/
+
+# Development and testing
+remove_duplicates.py
+test_translator.py
