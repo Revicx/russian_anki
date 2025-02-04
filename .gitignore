@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+
+# Environment variables
+.env
+
+# Logs
+*.log
+logs/
+app.log
+
+# Database
+*.db
+
+# Anki deck files
+*.apkg
+*.apkg.backup
+
+# Dependencies directories
+Tesseract-OCR/
+poppler-windows/
+
+# IDE
+.vscode/
+.idea/
+
+# Backup files
+*.old
+*.backup
+
+# Windows
+Thumbs.db
+desktop.ini
