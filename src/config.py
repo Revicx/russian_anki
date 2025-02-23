@@ -9,8 +9,8 @@ ROOT_DIR = Path(__file__).parent.parent
 SRC_DIR = Path(__file__).parent
 
 # External dependencies
-TESSERACT_PATH = os.path.join(ROOT_DIR, 'Tesseract-OCR', 'tesseract.exe')
-POPPLER_PATH = os.path.join(ROOT_DIR, 'poppler-windows', 'Library', 'bin')
+TESSERACT_PATH = os.path.join('C:\\', 'Program Files', 'Tesseract-OCR', 'tesseract.exe')
+POPPLER_PATH = os.path.join('C:\\', 'Program Files', 'poppler-24.08.0', 'Library', 'bin')
 
 # Default paths
 DEFAULT_DB_PATH = os.path.join(ROOT_DIR, 'wortschatz.db')

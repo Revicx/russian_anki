@@ -31,8 +31,9 @@ def clean_and_split_text(text):
     if not text:
         return set()
     
-    # Remove all non-Russian characters except spaces
-    cleaned = re.sub(r'[^а-яА-ЯёЁ\s]', ' ', text)
+    # Remove all non-Russian characters except spaces and stresses
+    # Examples: зимо́й, весна́, весно́й, весёлый, пры́гать, че́рез, э́то ста́рое де́рево, э́ти ту́фли краси́вые, фе́йковая, э́то прести́жная моне́та
+    cleaned = re.sub(r'[^а-яА-ЯёЁ\s\u0301\u0300]', ' ', text)
     
     # Normalize spaces
     cleaned = ' '.join(cleaned.split())
@@ -40,8 +41,11 @@ def clean_and_split_text(text):
     # Split into words and filter
     words = set()
     for word in cleaned.split():
-        # Check minimum length (2 characters) and if it contains Russian characters
-        if len(word) >= 2 and re.search(r'[а-яА-ЯёЁ]{2,}', word):
+        # Check minimum length (1 characters) and if it contains Russian characters
+        # Allow stresses over the characters which indicate the stress position of the word
+        # Examples: зимо́й, весна́, весно́й, весёлый, пры́гать, че́рез
+
+        if len(word) >= 1 and re.search(r'[а-яА-ЯёЁ\u0301\u0300]{1,}', word):
             words.add(word.lower())
     
     extraction_logger.debug(f"Extracted {len(words)} Russian words")
@@ -132,6 +136,25 @@ def extract_text_from_pdf(filepath):
         extraction_logger.error(f"Error processing PDF {filepath}: {str(e)}")
         return ""
 
+def extract_text_from_markdown(file_path):
+    """Extracts text from a markdown file, stripping out common markdown formatting."""
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            text = f.read()
+        # Remove code blocks (```...```)
+        text = re.sub(r'```.*?```', '', text, flags=re.DOTALL)
+        # Remove inline code (`...`)
+        text = re.sub(r'`.*?`', '', text)
+        # Remove images and links: ![...](...) and [...](...)
+        text = re.sub(r'!\[.*?\]\(.*?\)', '', text)
+        text = re.sub(r'\[.*?\]\(.*?\)', '', text)
+        # Remove headings markers (e.g., "# Heading")
+        text = re.sub(r'^\s*#+\s*', '', text, flags=re.MULTILINE)
+        return text
+    except Exception as e:
+        extraction_logger.error(f"Error extracting text from markdown file '{file_path}': {e}")
+        return ""
+
 def extract_text_from_file(filepath):
     """Extract text from a single file based on its extension."""
     extraction_logger.info(f"Starting text extraction from: {filepath}")
@@ -151,6 +174,8 @@ def extract_text_from_file(filepath):
         elif ext == '.txt':
             with open(filepath, 'r', encoding='utf-8') as f:
                 return f.read()
+        elif ext == '.md':
+            return extract_text_from_markdown(filepath)
         else:
             extraction_logger.warning(f"Unsupported file type {ext}: {filepath}")
             return ""
@@ -159,7 +184,10 @@ def extract_text_from_file(filepath):
         return ""
 
 def extract_text_from_input(input_path, storage='sqlite', storage_path='vocab.db'):
-    """Extract text from various input formats."""
+    """
+    Extracts text from a file or directory based on file type.
+    Supports PDF, DOCX, Markdown (.md) and plain text files.
+    """
     extraction_logger.info(f"Starting text extraction from: {input_path}")
     
     try:
@@ -179,7 +207,7 @@ def extract_text_from_input(input_path, storage='sqlite', storage_path='vocab.db
             for root, dirs, files in os.walk(input_path):
                 for file in files:
                     ext = os.path.splitext(file)[1].lower()
-                    if ext in [".txt", ".pdf", ".docx", ".png", ".jpg", ".jpeg"]:
+                    if ext in [".txt", ".pdf", ".docx", ".png", ".jpg", ".jpeg", ".md"]:
                         file_path = os.path.join(root, file)
                         text = extract_text_from_file(file_path)
                         words = clean_and_split_text(text)

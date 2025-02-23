@@ -85,8 +85,8 @@ class VocabExtractorGUI:
         files = filedialog.askopenfilenames(
             title="Select Files",
             filetypes=[
-                ("Supported Files", "*.txt;*.pdf;*.docx;*.png;*.jpg;*.jpeg"),
-                ("Text Files", "*.txt"),
+                ("Supported Files", "*.txt;*.pdf;*.docx;*.png;*.jpg;*.jpeg;*.md"),
+                ("Text Files", "*.txt;*.md"),
                 ("PDF Files", "*.pdf"),
                 ("Word Documents", "*.docx"),
                 ("Image Files", "*.png;*.jpg;*.jpeg"),

@@ -54,7 +54,7 @@ class RussianTranslator:
         return cleaned
     
     def translate_word(self, word):
-        """Translate a single word."""
+        """Translate a single word and return a dictionary with translation data."""
         if not word or not self.is_russian_word(word):
             translation_logger.warning(f"Skipping translation for non-Russian or empty word: {word}")
             return None
@@ -62,51 +62,70 @@ class RussianTranslator:
         word = self.clean_word(word)
         translation_logger.info(f"Translating word: {word}")
         
-        prompt = """You are a professional Russian to English translator. Translate the given Russian word to English. Respond with ONLY the English translation, nothing else.
-        
-Special instructions:
-1. Correct typos in the Russian word silently
-2. Do not provide any additional explanations outside of the translation
-3. The example sentence should show the word in a typical context
-4. Grammar information as a single string with \\n for new lines
-5. Stick strictly to the translation format without line breaks in strings
-
-Russian word: {word}"""
+        # Updated prompt instructing a strict JSON response
+        prompt = (
+            "You are a professional Russian-to-German translator. Translate the given Russian word into German. When providing russian examples use stresses over the characters which indicate the stress position of the word.\n"
+            "You MUST respond ONLY with a valid JSON object in the following format, and nothing else. Do not include any extra text or explanations before or after the JSON. Ensure the JSON is well-formed. The JSON object should be enclosed in an code block delimiters (triple backticks) and should not contain any other formatting.\n"
+            "Example JSON Response:\n"
+            '{"translation": "dein", "part_of_speech": "Possessivpronomen", "grammatical case": "Nominativ, Genitiv, Dativ, Akkusativ (abhängig von Fall, Geschlecht und Numerus des Bezugswortes)", "example_ru": "Э́то твой кот.","example_de": "Das ist deine Katze."}\n'
+            f"Russian word: {word}"
+        )
         
         try:
             response = requests.post(
                 "https://openrouter.ai/api/v1/chat/completions",
                 headers=self.headers,
                 json={
-                    "model": "anthropic/claude-3.5-haiku-20241022:beta",
+                    "model": "google/gemini-2.0-flash-001",
                     "messages": [
                         {
                             "role": "system",
-                            "content": prompt.format(word=word)
+                            "content": prompt
                         }
                     ]
                 }
             )
             
             if response.status_code == 200:
-                content = response.json()["choices"][0]["message"]["content"]
-                
-                # Find the JSON part of the response
+                content = response.json()["choices"][0]["message"]["content"].strip()
+
+                # Remove any leading characters before the JSON
+                content = content[content.find('{'):]
+
+                # Check if the response is encapsulated in a code block
+                if content.startswith("```json"):
+                    content = content[6:].strip()
+                elif content.startswith("```"):
+                    content = content[3:].strip()
+                if content.endswith("```"):
+                    content = content[:-3].strip()
+
+                # Try to parse the response as JSON
                 try:
-                    # Search for the first { and last }
+                    translation_data = json.loads(content)
+                    # Ensure the returned data includes the original word.
+                    translation_data["original"] = word
+                    translation_logger.info(f"Translation successful: {translation_data}")
+                    return translation_data
+                except json.JSONDecodeError:
+                    translation_logger.error(f"Failed to parse JSON directly from response: {content}")
+
+                    # Fallback: try to extract JSON-like text using boundaries
                     start = content.find('{')
                     end = content.rfind('}') + 1
                     if start >= 0 and end > start:
                         json_str = content[start:end]
-                        translation_data = json.loads(json_str)
-                        translation_logger.info(f"Translation successful: {translation_data}")
-                        return translation_data
-                    else:
-                        translation_logger.error("No JSON found in the response")
-                        return None
-                except json.JSONDecodeError as e:
-                    translation_logger.error(f"JSON Parse Error: {str(e)}\nContent: {content}")
-                    return None
+                        try:
+                            translation_data = json.loads(json_str)
+                            translation_data["original"] = word
+                            translation_logger.info(f"Fallback JSON parsing successful: {translation_data}")
+                            return translation_data
+                        except json.JSONDecodeError as e:
+                            translation_logger.error(f"Fallback JSON parsing failed: {str(e)}")
+                    # Final fallback: return raw text in a dictionary with the original word included.
+                    fallback = {"translation": content, "part_of_speech": "", "grammatical case": "", "example_ru": "", "example_de": "", "original": word}
+                    translation_logger.info("Returning fallback translation data as raw text.")
+                    return fallback
             else:
                 translation_logger.error(f"API Error: {response.status_code} - {response.text}")
                 return None
