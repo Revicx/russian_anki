@@ -151,15 +151,16 @@ def create_anki_deck(translations, output_file):
             for i, trans in enumerate(translations, 1):
                 try:
                     # Russisch -> Deutsch
+
                     note = genanki.Note(
                         model=model,
                         fields=[
-                            trans["original"],
-                            trans["translation"],
-                            trans["part_of_speech"],
-                            trans.get("grammatical case", ""),  # Optional
-                            trans.get("example_de", ""),    # Optional
-                            trans.get("example_ru", "")     # Optional
+                            trans.get("original") or "",
+                            trans.get("translation") or "",
+                            trans.get("part_of_speech") or "",
+                            trans.get("grammatical case") or "",
+                            trans.get("example_de") or "",
+                            trans.get("example_ru") or ""   
                         ]
                     )
                     deck.add_note(note)
