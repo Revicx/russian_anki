@@ -1,104 +1,177 @@
 """
 Main entry point for the Russian Vocabulary Extractor application.
+
+This module provides the command-line interface and main application logic
+for extracting Russian words from various file formats, translating them,
+and generating Anki decks for learning.
 """
 import os
 import sys
-import argparse
 import logging
 import csv
 from pathlib import Path
+from typing import List, Set, Dict, Any, Optional, Union, Tuple
+import click
 
-# Add src directory to Python path
-src_dir = os.path.dirname(os.path.abspath(__file__))
-root_dir = os.path.dirname(src_dir)
-if src_dir not in sys.path:
-    sys.path.insert(0, root_dir)
-
-from src.config import DEFAULT_DB_PATH, DEFAULT_OUTPUT_FILE, DEFAULT_LOG_FILE
-from src.utils import setup_logging, check_dependencies
+from src.config import (
+    DEFAULT_DB_PATH, DEFAULT_OUTPUT_FILE, DEFAULT_LOG_FILE,
+    validate_config
+)
+from src.utils import (
+    setup_logging, check_dependencies, safe_execute,
+    RussianAnkiError, ConfigurationError, StorageError
+)
 from src.text_extraction import extract_text_from_input
 from src.translator import RussianTranslator
 from src.anki_generator import create_anki_deck
-from src.storage import store_new_words, init_db_sqlite
+from src.storage import store_new_words, init_db_sqlite, get_vocab
 from src.gui import create_gui
 
-def process_files(input_paths, storage='sqlite', storage_path=DEFAULT_DB_PATH, 
-                 output_file=DEFAULT_OUTPUT_FILE):
-    """Process files and create Anki deck."""
+# Logger for this module
+logger = logging.getLogger(__name__)
+
+class AppContext:
+    """Application context for managing state and dependencies."""
+    
+    def __init__(self, 
+                storage_type: str = 'sqlite', 
+                storage_path: Union[str, Path] = DEFAULT_DB_PATH,
+                output_file: Union[str, Path] = DEFAULT_OUTPUT_FILE,
+                log_level: int = logging.INFO):
+        """
+        Initialize application context.
+        
+        Args:
+            storage_type: Type of storage ('sqlite' or 'csv')
+            storage_path: Path to the storage file
+            output_file: Path to the output Anki deck file
+            log_level: Logging level
+        """
+        self.storage_type = storage_type
+        self.storage_path = Path(storage_path)
+        self.output_file = Path(output_file)
+        self.log_level = log_level
+        self.translator = RussianTranslator()
+        
+        # Initialize logging
+        setup_logging(log_level, DEFAULT_LOG_FILE)
+        
+        # Validate configuration
+        self.config_valid = validate_config()
+        
+        # Initialize storage
+        self._init_storage()
+        
+    def _init_storage(self) -> None:
+        """Initialize the storage system based on the selected type."""
+        if self.storage_type == 'sqlite':
+            init_db_sqlite(self.storage_path)
+        elif self.storage_type == 'csv' and not self.storage_path.exists():
+            # Create empty CSV with header
+            with open(self.storage_path, 'w', encoding='utf-8', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerow(['word', 'translation', 'context'])
+        
+        logger.info(f"Storage initialized: {self.storage_type} at {self.storage_path}")
+
+
+def process_files(input_paths: List[Union[str, Path]], 
+                 app_context: AppContext) -> bool:
+    """
+    Process files and create Anki deck.
+    
+    Args:
+        input_paths: List of file or directory paths to process
+        app_context: Application context with configuration
+        
+    Returns:
+        True if processing was successful, False otherwise
+        
+    Raises:
+        RussianAnkiError: If there's an error during processing
+    """
+    logger.info(f"Processing {len(input_paths)} input paths")
+    
     try:
-        # Sammle Wörter aus allen Dateien
+        # Collect words from all files
         all_words = set()
         for path in input_paths:
-            extracted_words = extract_text_from_input(path, storage, storage_path)
+            extracted_words = extract_text_from_input(
+                path, app_context.storage_type, app_context.storage_path
+            )
             all_words.update(word.lower() for word in extracted_words)
             
         if not all_words:
-            logging.info("Keine neuen Wörter gefunden")
-            return
+            logger.info("No new words found")
+            return False
             
-        # Übersetze Wörter
-        translator = RussianTranslator()
-        translations = translator.batch_translate(sorted(list(all_words)))
+        # Translate words
+        translations = app_context.translator.batch_translate(sorted(list(all_words)))
         
-        # Speichere neue Wörter
-        store_new_words(storage, storage_path, all_words)
+        # Store new words
+        store_new_words(app_context.storage_type, app_context.storage_path, all_words)
         
-        # Erstelle Anki Deck
-        create_anki_deck(translations, output_file)
+        # Create Anki deck
+        create_anki_deck(translations, app_context.output_file)
         
-        logging.info(f"Verarbeitung abgeschlossen. {len(all_words)} neue Wörter verarbeitet.")
+        logger.info(f"Processing completed. {len(all_words)} new words processed.")
+        return True
         
     except Exception as e:
-        logging.error(f"Fehler bei der Verarbeitung: {str(e)}", exc_info=True)
-        raise
+        error_msg = f"Error during file processing: {str(e)}"
+        logger.error(error_msg, exc_info=True)
+        raise RussianAnkiError(error_msg) from e
 
-def init_app(storage, storage_path):
-    """Initialize application."""
-    if storage == 'sqlite':
-        init_db_sqlite(storage_path)
-    elif storage == 'csv' and not os.path.exists(storage_path):
-        # Erstelle leere CSV mit Header
-        with open(storage_path, 'w', encoding='utf-8', newline='') as f:
-            writer = csv.writer(f)
-            writer.writerow(['word', 'translation', 'context'])
 
-def main():
-    """Main entry point."""
-    parser = argparse.ArgumentParser(description='Russische Vokabel Extraktion und Anki Deck Erstellung')
-    parser.add_argument('--gui', action='store_true', help='Starte die grafische Benutzeroberfläche')
-    parser.add_argument('--files', nargs='*', help='Zu verarbeitende Dateien oder Ordner')
-    parser.add_argument('--storage', choices=['sqlite', 'csv'], default='sqlite',
-                      help='Speichermethode (sqlite oder csv)')
-    parser.add_argument('--storage-path', default=DEFAULT_DB_PATH,
-                      help='Pfad zur Datenbank/CSV-Datei')
-    parser.add_argument('--output', default=DEFAULT_OUTPUT_FILE,
-                      help='Ausgabedatei für das Anki-Deck')
-    parser.add_argument('--log-level', default='INFO',
-                      choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
-                      help='Log-Level')
-    
-    args = parser.parse_args()
-    
-    # Setup logging
-    setup_logging(getattr(logging, args.log_level), DEFAULT_LOG_FILE)
+# Click command group
+@click.group()
+@click.option('--storage', type=click.Choice(['sqlite', 'csv']), default='sqlite',
+              help='Storage method (sqlite or csv)')
+@click.option('--storage-path', type=click.Path(), default=str(DEFAULT_DB_PATH),
+              help='Path to database/CSV file')
+@click.option('--output', type=click.Path(), default=str(DEFAULT_OUTPUT_FILE),
+              help='Output file for Anki deck')
+@click.option('--log-level', type=click.Choice(['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']),
+              default='INFO', help='Logging level')
+@click.pass_context
+def cli(ctx: click.Context, storage: str, storage_path: str, output: str, log_level: str) -> None:
+    """Russian Vocabulary Extractor and Anki Deck Creator."""
+    # Create application context
+    ctx.obj = AppContext(
+        storage_type=storage,
+        storage_path=storage_path,
+        output_file=output,
+        log_level=getattr(logging, log_level)
+    )
     
     # Check dependencies
-    check_dependencies()
-    
-    # Initialize application
-    init_app(args.storage, args.storage_path)
+    deps = check_dependencies()
+    if not all(deps.values()):
+        logger.warning("Some dependencies are missing. Functionality may be limited.")
+
+
+@cli.command()
+@click.argument('files', nargs=-1, type=click.Path(exists=True))
+@click.pass_obj
+def process(app_context: AppContext, files: List[str]) -> None:
+    """Process files and create Anki deck."""
+    if not files:
+        logger.error("No files specified")
+        return
     
     try:
-        if args.gui:
-            create_gui()
-        elif args.files:
-            process_files(args.files, args.storage, args.storage_path, args.output)
-        else:
-            parser.print_help()
-            
-    except Exception as e:
-        logging.error(f"Unerwarteter Fehler: {str(e)}", exc_info=True)
-        raise
+        process_files(files, app_context)
+    except RussianAnkiError as e:
+        logger.error(f"Error: {str(e)}")
+        sys.exit(1)
+
+
+@cli.command()
+@click.pass_obj
+def gui(app_context: AppContext) -> None:
+    """Start the graphical user interface."""
+    create_gui()
+
 
 if __name__ == '__main__':
-    main()
+    cli()  # pylint: disable=no-value-for-parameter
