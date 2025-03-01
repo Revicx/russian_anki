@@ -244,8 +244,8 @@ class VocabExtractorGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("Russian Vocabulary Extractor")
-        self.root.geometry("700x720")
-        self.root.minsize(650, 680)
+        self.root.geometry("900x1200")
+        self.root.minsize(900, 1200)
         
         # Set window background
         self.root.configure(bg=COLORS["bg_dark"])
