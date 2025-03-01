@@ -10,11 +10,11 @@ import logging
 import os
 import contextlib
 from pathlib import Path
-from typing import Set, List, Dict, Any, Optional, Union, Tuple, Iterator, ContextManager
+from typing import Set, List, Dict, Union, Iterator
 from dataclasses import dataclass
 
 from src.config import DEFAULT_DB_PATH
-from src.utils import StorageError, safe_execute
+from src.utils import StorageError
 
 # Logger for this module
 logger = logging.getLogger(__name__)

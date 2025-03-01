@@ -8,19 +8,18 @@ import re
 import os
 import json
 import time
-import hashlib
 import requests
 import logging
 import sqlite3
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Dict, List, Any, Optional, Union, Set, Callable, TypedDict
+from typing import Dict, List, Any, Optional, Union, TypedDict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dotenv import load_dotenv
 from functools import wraps
 
 from src.config import TRANSLATION_LOG_FILE, ROOT_DIR
-from src.utils import TranslationError, safe_execute
+from src.utils import TranslationError
 
 # Logger for this module
 logger = logging.getLogger(__name__)
@@ -196,7 +195,7 @@ class TranslationProvider(ABC):
 class OpenRouterTranslationProvider(TranslationProvider):
     """Translation provider using OpenRouter API."""
     
-    def __init__(self, api_key: Optional[str] = None, model: str = "google/gemini-2.0-flash-001"):
+    def __init__(self, api_key: Optional[str] = None, model: str = "google/gemini-2.0-flash-lite-001an"):
         """
         Initialize the OpenRouter translation provider.
         

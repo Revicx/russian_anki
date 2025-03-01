@@ -5,7 +5,6 @@ Starter script for the Russian Vocabulary Extractor.
 This script sets up the Python path and launches the application.
 It serves as the main entry point for both CLI and GUI modes.
 """
-import os
 import sys
 from pathlib import Path
 

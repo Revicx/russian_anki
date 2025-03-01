@@ -2,7 +2,6 @@ import os
 import logging
 import tkinter as tk
 from tkinter import filedialog, ttk, messagebox
-from PIL import Image, ImageTk
 import threading
 
 from src.config import DEFAULT_DB_PATH, DEFAULT_OUTPUT_FILE

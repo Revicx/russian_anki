@@ -10,7 +10,7 @@ import sys
 import logging
 import csv
 from pathlib import Path
-from typing import List, Set, Dict, Any, Optional, Union, Tuple
+from typing import List, Union
 import click
 
 from src.config import (

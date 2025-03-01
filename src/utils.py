@@ -7,8 +7,7 @@ and includes functions to check external dependencies.
 import os
 import logging
 import sys
-from typing import Optional, Dict, List, Any, Union, Callable
-from pathlib import Path
+from typing import Optional, Dict, Any, Callable
 
 from src.config import (
     TESSERACT_PATH, POPPLER_PATH, DEFAULT_LOG_FILE, 

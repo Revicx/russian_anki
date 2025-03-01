@@ -6,12 +6,11 @@ with customizable card templates and styling.
 """
 import random
 import logging
-import os
 from pathlib import Path
-from typing import List, Dict, Any, Optional, Union
+from typing import List, Dict, Union
 import genanki
 
-from src.utils import safe_execute, AnkiGenerationError
+from src.utils import AnkiGenerationError
 
 # Logger for this module
 logger = logging.getLogger(__name__)

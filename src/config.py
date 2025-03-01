@@ -7,10 +7,9 @@ It uses pathlib.Path for platform-independent path handling and supports
 environment variable overrides for sensitive values.
 """
 import os
-import sys
 import logging
 from pathlib import Path
-from typing import Dict, Any, Optional, Union, List
+from typing import Dict, Optional
 
 # Environment variable configuration
 def get_env(key: str, default: Optional[str] = None) -> Optional[str]:
